@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel File Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .upload-container {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .file-list {
+            margin: 20px 0;
+            padding: 10px;
+            background: #f5f5f5;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #fileInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Excel File Upload</h1>
+    <div class="upload-container">
+        <input type="file" id="fileInput" multiple accept=".xlsx,.xls">
+        <button onclick="document.getElementById('fileInput').click()">Select Excel Files</button>
+        <div class="file-list" id="fileList">
+            No files selected
+        </div>
+        <button id="uploadButton" onclick="uploadFiles()" disabled>Upload and Process Files</button>
+    </div>
+    <div id="status" class="status"></div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const uploadButton = document.getElementById('uploadButton');
+        const status = document.getElementById('status');
+
+        fileInput.addEventListener('change', function() {
+            const files = Array.from(this.files);
+            if (files.length > 0) {
+                fileList.innerHTML = '<strong>Selected files:</strong><br>' + 
+                    files.map(f => f.name).join('<br>');
+                uploadButton.disabled = false;
+            } else {
+                fileList.innerHTML = 'No files selected';
+                uploadButton.disabled = true;
+            }
+        });
+
+        async function uploadFiles() {
+            const files = fileInput.files;
+            if (files.length === 0) return;
+
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            uploadButton.disabled = true;
+            status.innerHTML = 'Uploading and processing files...';
+            status.className = 'status';
+            status.style.display = 'block';
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    status.innerHTML = `Success! ${result.message}`;
+                    status.className = 'status success';
+                    // Reset form
+                    fileInput.value = '';
+                    fileList.innerHTML = 'No files selected';
+                    uploadButton.disabled = true;
+                } else {
+                    throw new Error(result.error || 'Upload failed');
+                }
+            } catch (error) {
+                status.innerHTML = `Error: ${error.message}`;
+                status.className = 'status error';
+                uploadButton.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
